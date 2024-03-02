@@ -20,15 +20,15 @@ Bun.serve({
   port: 36107,
   fetch: async (request) => {
     const reqUrl = new URL(request.url);
-    let toTranslate = false
     let path = reqUrl.pathname
-    if (path.startsWith('/en-us')) {
+
+    if (path.startsWith('/en-us') &&
+      request.headers.get('Referer')?.startsWith(`http://localhost:36107/fr-fr`)) {
       return Response.redirect(`/fr-fr${path.slice(6)}`);
     }
 
     if (path.startsWith('/fr-fr')) {
       path = `/en-us${path.slice(6)}`;
-      toTranslate = true;
     }
 
     const hostRes = await fetch(`https://${host}${path}`, {
@@ -41,15 +41,10 @@ Bun.serve({
     }
 
     hostRes.headers.delete('Content-Encoding')
-    if (toTranslate) {
-      const translatedBody: any = await translateBody(await hostRes.text());
-      return new Response(translatedBody, {
-        headers: hostRes.headers
-      });
-    }
-    return new Response(hostRes.body, {
+    const translatedBody: any = await translateBody(await hostRes.text());
+    return new Response(translatedBody, {
       headers: hostRes.headers
-    })
+    });
   },
 });
 
