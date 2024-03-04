@@ -21,6 +21,7 @@ Bun.serve({
   fetch: async (request) => {
     const reqUrl = new URL(request.url);
     let path = reqUrl.pathname
+    let toTranslate = false;
 
     if (path.startsWith('/en-us') &&
       request.headers.get('Referer')?.startsWith(`http://localhost:36107/fr-fr`)) {
@@ -29,6 +30,7 @@ Bun.serve({
 
     if (path.startsWith('/fr-fr')) {
       path = `/en-us${path.slice(6)}`;
+      toTranslate = true
     }
 
     const hostRes = await fetch(`https://${host}${path}`, {
@@ -41,7 +43,8 @@ Bun.serve({
     }
 
     hostRes.headers.delete('Content-Encoding')
-    const translatedBody: any = await translateBody(await hostRes.text());
+    const hostResBody = await hostRes.text()
+    const translatedBody: any = toTranslate ? await translateBody(hostResBody) : hostResBody;
     return new Response(translatedBody, {
       headers: hostRes.headers
     });
